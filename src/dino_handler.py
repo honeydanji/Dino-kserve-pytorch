@@ -20,12 +20,11 @@ class DinoHandler(BaseHandler):
         properties = context.system_properties
         model_dir = properties.get("model_dir")
 
-
         # Device 설정
         self.device = torch.device("cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available() else "cpu")
 
         # Model 가중치 파일 확인
-        model_pt_path = '../chpt/dino.pt'
+        model_pt_path = 'C:/Personal/Dino/chpt/dino.pt'
         if not os.path.isfile(model_pt_path):
             raise RuntimeError("Missing the model.pt file")
 
@@ -69,14 +68,21 @@ class DinoHandler(BaseHandler):
     def handle(self, data, context):
         self.context = context
 
-        try:
-            if not self.initialized:
-                self.initialize()
+        if data=="none":
+            return json.dumps({
+                "test" : "a"
+            })
+        else:
+            return Exception("에러발생")
 
-            model_input = self.preprocess(data)
-            model_output = self.inference(model_input)
-            result = self.postprocess(model_output)
-            return result
-
-        except Exception as e:
-            raise Exception("에러 발생 하면 안되는데 ............." + str(e))
+        # try:
+        #     if not self.initialized:
+        #         self.initialize()
+        #
+        #     model_input = self.preprocess(data)
+        #     model_output = self.inference(model_input)
+        #     result = self.postprocess(model_output)
+        #     return result
+        #
+        # except RuntimeError as e:
+        #     raise Exception("에러 발생 하면 안되는데 ............." + str(e))
