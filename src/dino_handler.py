@@ -9,34 +9,37 @@ import base64, os, cv2, io
 import json
 
 class DinoHandler(BaseHandler):
+
     def __init__(self):
         self._context = None
         self.initialized = False
         self.model = None
         self.device = None
-    def initialize(self, context):
 
+    def initialize(self, context):
         self.manifest = context.manifest
         properties = context.system_properties
         model_dir = properties.get("model_dir")
-
-        # Device 설정
         self.device = torch.device("cuda:" + str(properties.get("gpu_id")) if torch.cuda.is_available() else "cpu")
 
-        # Model 가중치 파일 확인
-        model_pt_path = 'C:/Personal/Dino/chpt/dino.pt'
+        serialized_file = self.manifest['model']['serializedFile']
+
+        model_pt_path = os.path.join(model_dir, serialized_file)
         if not os.path.isfile(model_pt_path):
             raise RuntimeError("Missing the model.pt file")
 
         self.model = UnifiedClassifier()
         self.model.load_state_dict(torch.load(model_pt_path, map_location=self.device))
+        self.model = self.model.to(self.device)
         self.model.eval()
 
         self.initialized = True
 
     def preprocess(self, data):
 
-        ## 데이터 전처리 코드 주석 처리함
+        data = data[0]['body'].decode('utf-8')
+        data = json.loads(data)
+
         input_image = base64.b64decode(data["instances"][0]["data"])
         input_image = Image.open(io.BytesIO(input_image))
         input_image = np.array(input_image)
@@ -51,38 +54,19 @@ class DinoHandler(BaseHandler):
                 ])
 
         input_tensor = processing(image=input_image)['image'].unsqueeze(0)
-        preprocessed_data = input_tensor
+        return input_tensor
+    def inference(self, model_input):
+        model_input = model_input.to(self.device)
+        model_output = self.model(model_input)
+        return model_output
 
-        return preprocessed_data
-
-    def inference(self, data):
-        # data : 전처리된 데이터
-        # data 를 이용해서 실제 모델을 가져와 추론 진행 하는 코드 작성 해야 함.
-        # 현재는 임시로 결과값 보냄.
-        return self.model(data)
-
-    def postprocess(self, data):
-        # 추론 결과 후처리
-        return json.dump(data)
+    def postprocess(self, inference_output):
+        postprocess_output = json.dumps(inference_output)
+        return [postprocess_output]
 
     def handle(self, data, context):
-        self.context = context
+        model_input = self.preprocess(data)
+        model_output = self.inference(model_input)
+        model_output = self.postprocess(model_output)
 
-        if data=="none":
-            return json.dumps({
-                "test" : "a"
-            })
-        else:
-            return Exception("에러발생")
-
-        # try:
-        #     if not self.initialized:
-        #         self.initialize()
-        #
-        #     model_input = self.preprocess(data)
-        #     model_output = self.inference(model_input)
-        #     result = self.postprocess(model_output)
-        #     return result
-        #
-        # except RuntimeError as e:
-        #     raise Exception("에러 발생 하면 안되는데 ............." + str(e))
+        return model_output
