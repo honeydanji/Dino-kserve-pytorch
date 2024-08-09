@@ -1,0 +1,23 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+        name: "dino-s3"
+        namespace: kubeflow-user-example-com
+        annotations:
+                sidecar.istio.io/inject: "false"
+spec:
+        predictor:
+                timeout: 600
+                serviceAccountName: dino
+                model:
+                        modelFormat:
+                                name: pytorch
+                        storageUri: "s3://dino-test/Dino"
+                        protocolVersion: "v2"
+                        resources:
+                                requests:
+                                        cpu: "3"
+                                        memory: "4Gi"
+                                limits:
+                                        cpu: "4"
+                                        memory: "5Gi"

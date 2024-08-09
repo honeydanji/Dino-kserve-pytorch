@@ -1,0 +1,25 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: dino-runtime
+  namespace: kubeflow-user-example-com
+spec:
+  protocolVersions:
+          - v1
+          - v2
+  supportedModelFormats:
+          - name: pytorch
+            version: "1"
+            autoSelect: true
+            priority: 1
+  containers:
+          - name: kserve-container
+            image: tjdwls3680/kserve-dino:2.0
+            args:
+                    - torchserve
+                    - --start
+                    - --model-store=/mnt/models/model-store
+                    - --ts-config=/mnt/models/config/config.properties
+            env:
+                    - name: TS_SERVICE_ENVELOPE
+                      value: '{{.Labels.serviceEnvelope}}'
