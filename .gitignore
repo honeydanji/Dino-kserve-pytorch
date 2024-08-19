@@ -1,3 +1,4 @@
 kserve/etc
 logs
 predict/json_data
+env
